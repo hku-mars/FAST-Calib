@@ -1,13 +1,13 @@
 # Camera intrinsics  
   # mid360
-  fx: 522.123514287681
-  fy: 522.275153384482
-  cx: 773.466430504725
-  cy: 534.053165700174
-  k1: 0.00324949759262203
-  k2: -0.0171040538369167
-  p1: 0.000669657443377146
-  p2: -0.000350205468789575
+  fx: 843.501050605967
+  fy: 845.199690011973
+  cx: 321.017429415352
+  cy: 239.294896816737
+  k1: -0.465219389887045
+  k2: 0.237050091701749
+  p1: 0.00521922785740506
+  p2: 0.000418186016514835
 
   # avia
   # fx: 1215.31801774424
@@ -38,17 +38,20 @@
   circle_radius: 0.12 # Radius of the circle 
 
 # Distance filter
-  x_min: 1.5
-  x_max: 3.0
-  y_min: -1.5
-  y_max: 2.0
-  z_min: -0.5 # avia and mid360: -0.5 ouster: -0.8
+  x_min: 3.0 # avia and mid360: 2.0 ouster: 1.5
+  x_max: 5.0
+  y_min: -0.5
+  y_max: 3.0
+  z_min: 0.0 # avia and mid360: -0.5 ouster: -0.8
   z_max: 2.0
 
 # Input
   lidar_topic: "/livox/lidar" # /ouster/points /livox/lidar
-  bag_path: "$(find fast_calib)/calib_data/mid360/11.bag"
-  image_path: "$(find fast_calib)/calib_data/mid360/11.png"
+  bag_path: "$(find fast_calib)/calib_data/group1/33/33_2025-08-10-16-57-50.bag"
+  image_path: "$(find fast_calib)/calib_data/group1/33/1577837603_699977875.jpg"
+
+# midresult
+  midresult_path: "$(find fast_calib)/midresult"
 
 # Output
-  output_path: "$(find fast_calib)/output"
+  output_path: "$(find fast_calib)/output/group1/33"
