@@ -36,3 +36,10 @@ target_link_libraries(fast_calib
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+add_executable(multi_fast_calib src/multi_scene.cpp)
+target_link_libraries(multi_fast_calib
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)

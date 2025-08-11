@@ -85,6 +85,7 @@ struct Params {
   string bag_path;
   string lidar_topic;
   string output_path;
+  string midresult_path;
 };
 
 // 读取参数
@@ -109,6 +110,7 @@ Params loadParameters(ros::NodeHandle &nh) {
   nh.param("bag_path", params.bag_path, string("/home/chunran/calib_ws/src/fast_calib/data/input.bag"));
   nh.param("lidar_topic", params.lidar_topic, string("/livox/lidar"));
   nh.param("output_path", params.output_path, string("/home/chunran/calib_ws/src/fast_calib/output"));
+  nh.param("midresult_path", params.midresult_path, string("/home/chunran/calib_ws/src/fast_calib/midresult"));
   nh.param("x_min", params.x_min, 1.5);
   nh.param("x_max", params.x_max, 3.0);
   nh.param("y_min", params.y_min, -1.5);
@@ -210,6 +212,43 @@ void projectPointCloudToImage(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
       colored_cloud->push_back(colored_point);
     }
   }
+}
+
+void savemidresult(const pcl::PointCloud<pcl::PointXYZ>::Ptr& lidar_centers,
+                      const pcl::PointCloud<pcl::PointXYZ>::Ptr& qr_centers,
+                      const Params& params)
+{
+    if (lidar_centers->size() != 4 || qr_centers->size() != 4) {
+      std::cerr << "[savemidresult] The number of points in lidar_centers or qr_centers is not 4, skip saving." << std::endl;
+      return;
+    }
+    
+    std::string midresultDir = params.midresult_path;
+    if (midresultDir.back() != '/') midresultDir += '/';
+    std::ofstream midFile(midresultDir + "circle_center_record.txt", std::ios::app);
+
+    if (!midFile.is_open()) {
+        std::cerr << "[savemidresult] Cannot open file: " << midresultDir + "circle_center_record.txt" << std::endl;
+        return;
+    }
+
+    // 获取当前系统时间
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    midFile << "time: " << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S") << std::endl;
+
+    midFile << "lidar_centers:";
+    for (const auto& pt : lidar_centers->points) {
+        midFile << " {" << pt.x << "," << pt.y << "," << pt.z << "}";
+    }
+    midFile << std::endl;
+    midFile << "qr_centers:";
+    for (const auto& pt : qr_centers->points) {
+        midFile << " {" << pt.x << "," << pt.y << "," << pt.z << "}";
+    }
+    midFile << std::endl;
+    midFile.close();
+    std::cout << BOLDYELLOW << "[Result] Saved the four pairs of center coordinates to " << BOLDWHITE << midresultDir << "circle_center_record.txt" << RESET << std::endl;
 }
 
 void saveCalibrationResults(const Params& params, const Eigen::Matrix4f& transformation, 
