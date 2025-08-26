@@ -85,6 +85,7 @@ struct Params {
   string bag_path;
   string lidar_topic;
   string output_path;
+  string camera_topic;
 };
 
 // 读取参数
@@ -115,6 +116,7 @@ Params loadParameters(ros::NodeHandle &nh) {
   nh.param("y_max", params.y_max, 2.0);
   nh.param("z_min", params.z_min, -0.5);
   nh.param("z_max", params.z_max, 2.0);
+  nh.param("camera_topic", params.camera_topic, string("/camera/image_raw"));
   return params;
 }
 

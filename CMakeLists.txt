@@ -7,13 +7,15 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   pcl_conversions
   geometry_msgs
+  cv_bridge
+  image_transport
 )
 
 find_package(PCL 1.10 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp sensor_msgs pcl_conversions pcl_ros
+  CATKIN_DEPENDS roscpp sensor_msgs pcl_conversions pcl_ros cv_bridge image_transport
 )
 
 include_directories(
