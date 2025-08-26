@@ -8,6 +8,14 @@
   # k2: 0.237050091701749
   # p1: 0.00521922785740506
   # p2: 0.000418186016514835
+  # fx: 522.123514287681
+  # fy: 522.275153384482
+  # cx: 773.466430504725
+  # cy: 534.053165700174
+  # k1: 0.00324949759262203
+  # k2: -0.0171040538369167
+  # p1: 0.000669657443377146
+  # p2: -0.000350205468789575
 
   # avia
   # fx: 1215.31801774424
@@ -30,14 +38,22 @@
   # p2: -0.000201478932371979
 
   # multi-scene
-  fx: 2478.48702288166
-  fy: 2478.58544825456
-  cx: 1230.99707596681
-  cy: 1025.66149498072
-  k1: -0.0493178189623200
-  k2: 0.147394487986097
-  p1: -0.00127118592043482
-  p2: -0.00200379689523022
+  # fx: 2478.48702288166
+  # fy: 2478.58544825456
+  # cx: 1230.99707596681
+  # cy: 1025.66149498072
+  # k1: -0.0493178189623200
+  # k2: 0.147394487986097
+  # p1: -0.00127118592043482
+  # p2: -0.00200379689523022
+  fx: 920.892502
+  fy: 919.776481
+  cx: 642.438522
+  cy: 357.302159
+  k1: 0.102689
+  k2: -0.188993
+  p1: -0.000814
+  p2: -0.000700
 
 # Calibration target parameters
   marker_size: 0.20 # ArUco marker size (our test data uses 0.16m; adjust to match your marker size)
@@ -48,20 +64,21 @@
   circle_radius: 0.12 # Radius of the circle 
 
 # Distance filter
-  # x_min: 3.0 # avia and mid360: 2.0 ouster: 1.5
+  # x_min: 2.0 # avia and mid360: 2.0 ouster: 1.5
   # x_max: 5.0
   # y_min: -0.5
   # y_max: 3.0
-  # z_min: 0.0 # avia and mid360: -0.5 ouster: -0.8
+  # z_min: -0.5 # avia and mid360: -0.5 ouster: -0.8
   # z_max: 2.0
 
 # multi_scene_11
   # x_min: 2.0
   # x_max: 5.0
-  # y_min: -1.0
-  # y_max: 1.0
-  # z_min: 0.0
+  # y_min: -0.5
+  # y_max: 3.0
+  # z_min: -0.5
   # z_max: 2.0
+
 # multi_scene_22
   # x_min: 2.0
   # x_max: 5.0
@@ -70,17 +87,25 @@
   # z_min: 0.0
   # z_max: 2.0
 # multi_scene_33
-  x_min: 2.0
-  x_max: 5.0
-  y_min: -1.0
-  y_max: 4.0
-  z_min: 0.0
+  # x_min: 2.0
+  # x_max: 5.0
+  # y_min: -1.0
+  # y_max: 4.0
+  # z_min: 0.0
+  # z_max: 2.0
+  x_min: 0.5 # avia and mid360: 2.0 ouster: 1.5
+  x_max: 3.0
+  y_min: -1.5
+  y_max: 1.5
+  z_min: 0.0 # avia and mid360: -0.5 ouster: -0.8
   z_max: 2.0
+
 
 # Input
   lidar_topic: "/livox/lidar" # /ouster/points /livox/lidar
-  bag_path: "$(find fast_calib)/calib_data/avia_multi_scene/33.bag"
-  image_path: "$(find fast_calib)/calib_data/avia_multi_scene/33.jpg"
+  bag_path: "$(find fast_calib)/calib_data/handheld_jw/left.bag"
+  image_path: "$(find fast_calib)/calib_data/"
+  camera_topic: "/d435/color/image_raw" # /camera/image_raw /image_jpeg/compressed
 
 # Output
   output_path: "$(find fast_calib)/output"
