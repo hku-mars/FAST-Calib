@@ -42,7 +42,7 @@ roslaunch fast_calib multi_calib.launch
 ```
 
 ## 3. Run on your own sensor suite
-1. Customize the calibration target in the image below, with the CAD model available [here](https://pan.baidu.com/s/14Q2zmEfY6Z2O5Cq4wgVljQ?pwd=2hhn).
+1. Customize the calibration target in the image below, with the CAD model available [here](https://pan.baidu.com/s/14Q2zmEfY6Z2O5Cq4wgVljQ?pwd=2hhn), a pdf format with absolute scale can be found [here](./calib_target/calib_traget.pdf).
 2. Collect data from three scenes, with placement illustrated below, and record them into the corresponding rosbags.
 3. Provide the instrinsic matrix in `qr_params.yaml`.
 4. Set distance filter in `qr_params.yaml` for board point cloud (extra points are acceptable).
