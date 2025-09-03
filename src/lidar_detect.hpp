@@ -115,6 +115,16 @@ public:
             plane_coefficients->values[1],
             plane_coefficients->values[2]);
         normal.normalize();
+        // 为了保证法向量方向的一致性，这里强制指向LiDAR原点(0,0,0)。避免了因标定板在传感器前后不同位置而导致的平面翻转问题。
+        Eigen::Vector4f centroid_4f;
+        pcl::compute3DCentroid(*plane_cloud_, centroid_4f);
+        // 从平面质心指向LiDAR原点的向量。注意这里从float显式转换为double，防止Eigen编译报错
+        Eigen::Vector3d view_point = -centroid_4f.head<3>().cast<double>(); 
+
+        if (normal.dot(view_point) < 0) 
+        {
+            normal = -normal; // 如果法向量背离LiDAR，则将其翻转
+        }
         Eigen::Vector3d z_axis(0, 0, 1);
 
         Eigen::Vector3d axis = normal.cross(z_axis);
