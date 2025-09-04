@@ -15,6 +15,7 @@ which is included as part of this source code package.
 #include <opencv2/aruco.hpp>
 #include <opencv2/opencv.hpp>
 #include "common_lib.h"
+#include <opencv2/ccalib/omnidir.hpp> // 添加鱼眼相机模型的头文件
 
 class QRDetect 
 {
@@ -23,6 +24,7 @@ class QRDetect
     double delta_width_circles_, delta_height_circles_;
     int min_detected_markers_;
     cv::Ptr<cv::aruco::Dictionary> dictionary_;
+    string cam_model_; // 添加成员变量来存储相机模型
   
   public:
     ros::Publisher qr_pub_;
@@ -38,6 +40,7 @@ class QRDetect
       delta_width_circles_ = params.delta_width_circles;
       delta_height_circles_ = params.delta_height_circles;
       min_detected_markers_ = params.min_detected_markers;
+      cam_model_ = params.cam_model; // 存储相机模型
       
       // Initialize camera matrix
       cameraMatrix_ = (cv::Mat_<float>(3, 3) << params.fx, 0, params.cx,
@@ -45,7 +48,13 @@ class QRDetect
                                                 0,         0,        1);
                                                 
       // Initialize distortion coefficients
-      distCoeffs_ = (cv::Mat_<float>(1, 5) << params.k1, params.k2, params.p1, params.p2, 0);
+      //distCoeffs_ = (cv::Mat_<float>(1, 5) << params.k1, params.k2, params.p1, params.p2, 0);
+      // 根据相机模型初始化畸变系数
+      if (cam_model_ == "fisheye") {
+        distCoeffs_ = (cv::Mat_<float>(1, 4) << params.k1, params.k2, params.k3, params.k4);
+      } else { // 默认为 pinhole
+        distCoeffs_ = (cv::Mat_<float>(1, 5) << params.k1, params.k2, params.p1, params.p2, 0);
+      }
 
       // Initialize QR dictionary
       dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
@@ -162,8 +171,18 @@ class QRDetect
 
       // Detect markers
       std::vector<int> ids;
-      std::vector<std::vector<cv::Point2f>> corners;
+      std::vector<std::vector<cv::Point2f>> corners, undistorted_corners; // undistorted_corners 用于鱼眼模型
       cv::aruco::detectMarkers(image, dictionary_, corners, ids, parameters);
+
+      // 如果是鱼眼模型，先对角点进行去畸变
+      if (cam_model_ == "fisheye" && !corners.empty()) {
+          undistorted_corners.resize(corners.size());
+          for(size_t i = 0; i < corners.size(); i++){
+              cv::fisheye::undistortPoints(corners[i], undistorted_corners[i], cameraMatrix_, distCoeffs_, cv::noArray(), cameraMatrix_);
+          }
+      } else {
+          undistorted_corners = corners; // Pinhole模型直接使用检测到的角点
+      }
 
       // Draw detections if at least one marker detected
       if (ids.size() > 0) cv::aruco::drawDetectedMarkers(imageCopy_, corners, ids);
@@ -178,9 +197,12 @@ class QRDetect
       {
         // Estimate 3D position of the markers
         vector<Vec3d> rvecs, tvecs;
-        Vec3f rvec_sin, rvec_cos;
-        cv::aruco::estimatePoseSingleMarkers(corners, marker_size_, cameraMatrix_,
-                                            distCoeffs_, rvecs, tvecs);
+        //Vec3f rvec_sin, rvec_cos;
+        // 根据模型选择不同的畸变参数进行位姿估计
+        cv::Mat dist_coeffs_for_pose = (cam_model_ == "fisheye") ? cv::Mat() : distCoeffs_;
+        // 注意：对于鱼眼模型，我们使用了去畸变后的点，所以畸变参数传空Mat
+        cv::aruco::estimatePoseSingleMarkers(undistorted_corners, marker_size_, cameraMatrix_,
+                                                 dist_coeffs_for_pose, rvecs, tvecs);
 
         // Draw markers' axis and centers in color image (Debug purposes)
         for (int i = 0; i < ids.size(); i++) {
@@ -218,11 +240,11 @@ class QRDetect
 
     // Estimate 3D position of the board using detected markers
     #if (CV_MAJOR_VERSION == 3 && CV_MINOR_VERSION <= 2) || CV_MAJOR_VERSION < 3
-        int valid = cv::aruco::estimatePoseBoard(corners, ids, board, cameraMatrix_,
-                                                distCoeffs_, rvec, tvec);
+        int valid = cv::aruco::estimatePoseBoard(undistorted_corners, ids, board, cameraMatrix_,
+                                                     dist_coeffs_for_pose, rvec, tvec);
     #else
-        int valid = cv::aruco::estimatePoseBoard(corners, ids, board, cameraMatrix_,
-                                                distCoeffs_, rvec, tvec, true);
+        int valid = cv::aruco::estimatePoseBoard(undistorted_corners, ids, board, cameraMatrix_,
+                                                     dist_coeffs_for_pose, rvec, tvec, true);
     #endif
 
 
