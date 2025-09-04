@@ -1,5 +1,5 @@
 # Camera model: "pinhole" or "fisheye"
-cam_model: "pinhole" # 在这里切换 "pinhole" 或 "fisheye"
+  cam_model: "pinhole" # 在这里切换 "pinhole" 或 "fisheye"
 
 # Camera intrinsics  
   # mid360
