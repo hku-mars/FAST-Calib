@@ -197,7 +197,7 @@ class QRDetect
       {
         // Estimate 3D position of the markers
         vector<Vec3d> rvecs, tvecs;
-        //Vec3f rvec_sin, rvec_cos;
+        Vec3f rvec_sin, rvec_cos;
         // 根据模型选择不同的畸变参数进行位姿估计
         cv::Mat dist_coeffs_for_pose = (cam_model_ == "fisheye") ? cv::Mat() : distCoeffs_;
         // 注意：对于鱼眼模型，我们使用了去畸变后的点，所以畸变参数传空Mat
