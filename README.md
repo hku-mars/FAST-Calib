@@ -1,3 +1,10 @@
+FAST-Calib bug修复版  
+这个是测试分支，大概率跑不通，请大家使用main分支。    
+修复原版存在的部分bug，仅在 Ubuntu20.04 Noetic 上测试。  
+1、修复中心点排序算法及检查函数，防止标定结果出现在标定板反面 （已合并至主线）  
+2、修复当标定板位于 LiDAR 坐标系后方时排序镜像的问题 (待测试，如大家有这样的数据可以共享给我）  
+3、增加对鱼眼镜头等其他相机模型的支持 (正在测试）  
+
 # FAST-Calib
 
 ## FAST-Calib: LiDAR-Camera Extrinsic Calibration in One Second
