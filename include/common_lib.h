@@ -77,7 +77,7 @@ using namespace pcl;
 // 参数结构体
 struct Params {
   double x_min, x_max, y_min, y_max, z_min, z_max;
-  double fx, fy, cx, cy, k1, k2, p1, p2;
+  double fx, fy, cx, cy, k1, k2, p1, p2, k3, k4; // 添加 k3 和 k4
   double marker_size, delta_width_qr_center, delta_height_qr_center;
   double delta_width_circles, delta_height_circles, circle_radius;
   int min_detected_markers;
@@ -85,11 +85,13 @@ struct Params {
   string bag_path;
   string lidar_topic;
   string output_path;
+  string cam_model; // 新增相机模型
 };
 
 // 读取参数
 Params loadParameters(ros::NodeHandle &nh) {
   Params params;
+  nh.param<string>("cam_model", params.cam_model, "pinhole"); // 读取相机模型，默认为 pinhole
   nh.param("fx", params.fx, 1215.31801774424);
   nh.param("fy", params.fy, 1214.72961288138);
   nh.param("cx", params.cx, 1047.86571859677);
@@ -98,6 +100,8 @@ Params loadParameters(ros::NodeHandle &nh) {
   nh.param("k2", params.k2, 0.10996870793601);
   nh.param("p1", params.p1, 0.000157303079833973);
   nh.param("p2", params.p2, 0.000544930726278493);
+  nh.param("k3", params.k3, 0.0); // 读取 k3
+  nh.param("k4", params.k4, 0.0); // 读取 k4
   nh.param("marker_size", params.marker_size, 0.2);
   nh.param("delta_width_qr_center", params.delta_width_qr_center, 0.55);
   nh.param("delta_height_qr_center", params.delta_height_qr_center, 0.35);
