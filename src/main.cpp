@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     std::cout << BOLDCYAN << std::fixed << std::setprecision(6) << transformation << RESET << std::endl;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    projectPointCloudToImage(cloud_input, transformation, qrDetectPtr->cameraMatrix_, qrDetectPtr->distCoeffs_, img_input, colored_cloud);
+    projectPointCloudToImage(cloud_input, transformation, qrDetectPtr->cameraMatrix_, qrDetectPtr->distCoeffs_, img_input, colored_cloud, params.cam_model); // 添加 params.cam_model
 
     saveCalibrationResults(params, transformation, colored_cloud, qrDetectPtr->imageCopy_);
 
