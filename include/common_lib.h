@@ -163,14 +163,20 @@ void projectPointCloudToImage(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
   const cv::Mat& cameraMatrix,
   const cv::Mat& distCoeffs,
   const cv::Mat& image,
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr& colored_cloud) 
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr& colored_cloud, 
+  const std::string& cam_model) // 传入相机模型
 {
   colored_cloud->clear();
   colored_cloud->reserve(cloud->size());
 
   // Undistort the entire image (preprocess outside if possible)
   cv::Mat undistortedImage;
-  cv::undistort(image, undistortedImage, cameraMatrix, distCoeffs);
+  // 根据模型进行图像去畸变
+  if (cam_model == "fisheye") {
+      cv::fisheye::undistortImage(image, undistortedImage, cameraMatrix, distCoeffs);
+  } else {
+      cv::undistort(image, undistortedImage, cameraMatrix, distCoeffs);
+  }
 
   // Precompute rotation and translation vectors (zero for this case)
   cv::Mat rvec = cv::Mat::zeros(3, 1, CV_32F);
@@ -192,7 +198,13 @@ void projectPointCloudToImage(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
 
     // Project the point to the image plane
     objectPoints[0] = cv::Point3f(transformed_point(0), transformed_point(1), transformed_point(2));
-    cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, zeroDistCoeffs, imagePoints);
+    // 根据模型进行3D点到2D图像的投影
+    if (cam_model == "fisheye") {
+        // 对于鱼眼相机，因为图像已经去畸变，所以投影时不再需要畸变参数
+        cv::fisheye::projectPoints(objectPoints, imagePoints, rvec, tvec, cameraMatrix, cv::Mat());
+    } else {
+        cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, cv::Mat::zeros(5, 1, CV_32F), imagePoints);
+    }
 
     int u = static_cast<int>(imagePoints[0].x);
     int v = static_cast<int>(imagePoints[0].y);
