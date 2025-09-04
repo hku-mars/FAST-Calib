@@ -169,42 +169,40 @@ void projectPointCloudToImage(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
   colored_cloud->clear();
   colored_cloud->reserve(cloud->size());
 
-  // Undistort the entire image (preprocess outside if possible)
+  // 1. 根据相机模型，生成一张标准的、无畸变的图像 (undistortedImage)
   cv::Mat undistortedImage;
-  // 根据模型进行图像去畸变
-  if (cam_model == "fisheye") {
-      cv::fisheye::undistortImage(image, undistortedImage, cameraMatrix, distCoeffs);
-  } else {
-      cv::undistort(image, undistortedImage, cameraMatrix, distCoeffs);
+  if (cam_model == "fisheye")
+  {
+    // 对鱼眼图像进行去畸变，结果是一张针孔图像
+    // 最后一个参数 cameraMatrix 表示我们希望去畸变后的新相机内参矩阵与原内参一致
+    cv::fisheye::undistortImage(image, undistortedImage, cameraMatrix, distCoeffs, cameraMatrix);
+  }
+  else
+  {
+    // 对针孔图像进行去畸变
+    cv::undistort(image, undistortedImage, cameraMatrix, distCoeffs);
   }
 
-  // Precompute rotation and translation vectors (zero for this case)
   cv::Mat rvec = cv::Mat::zeros(3, 1, CV_32F);
   cv::Mat tvec = cv::Mat::zeros(3, 1, CV_32F);
-  cv::Mat zeroDistCoeffs = cv::Mat::zeros(5, 1, CV_32F);
+  cv::Mat zeroDistCoeffs = cv::Mat::zeros(5, 1, CV_32F); // 创建一个全零的畸变向量
 
-  // Preallocate memory for projection
   std::vector<cv::Point3f> objectPoints(1);
   std::vector<cv::Point2f> imagePoints(1);
 
-  for (const auto& point : *cloud) 
+  for (const auto& point : *cloud)
   {
-    // Transform the point
+    // 坐标变换
     Eigen::Vector4f homogeneous_point(point.x, point.y, point.z, 1.0f);
     Eigen::Vector4f transformed_point = transformation * homogeneous_point;
 
-    // Skip points behind the camera
     if (transformed_point(2) < 0) continue;
 
-    // Project the point to the image plane
     objectPoints[0] = cv::Point3f(transformed_point(0), transformed_point(1), transformed_point(2));
-    // 根据模型进行3D点到2D图像的投影
-    if (cam_model == "fisheye") {
-        // 对于鱼眼相机，因为图像已经去畸变，所以投影时不再需要畸变参数
-        cv::fisheye::projectPoints(objectPoints, imagePoints, rvec, tvec, cameraMatrix, cv::Mat());
-    } else {
-        cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, cv::Mat::zeros(5, 1, CV_32F), imagePoints);
-    }
+
+    // 2. 将3D点投影到 undistortedImage 上。
+    // 因为 undistortedImage 已经是标准的针孔图像，所以统一使用 cv::projectPoints，且畸变系数为0。
+    cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, zeroDistCoeffs, imagePoints);
 
     int u = static_cast<int>(imagePoints[0].x);
     int v = static_cast<int>(imagePoints[0].y);
