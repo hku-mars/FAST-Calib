@@ -2,7 +2,7 @@
   cam_model: "pinhole" # 在这里切换 "pinhole" 或 "fisheye"
 
 # LiDAR installation configuration
-  lidar_inverted: true # 如果你的LiDAR是倒置安装(Z轴朝下)，请设置为 true
+  lidar_inverted: false # 如果你的LiDAR是倒置安装(Z轴朝下)，请设置为 true
 
 
 # Camera intrinsics  
