@@ -86,12 +86,14 @@ struct Params {
   string lidar_topic;
   string output_path;
   string cam_model; // 新增相机模型
+  bool lidar_inverted; // 用于标识LiDAR是否倒置安装
 };
 
 // 读取参数
 Params loadParameters(ros::NodeHandle &nh) {
   Params params;
   nh.param<string>("cam_model", params.cam_model, "pinhole"); // 读取相机模型，默认为 pinhole
+  nh.param("lidar_inverted", params.lidar_inverted, false); // 读取LiDAR是否倒置的参数，默认为 false (正向安装)
   nh.param("fx", params.fx, 1215.31801774424);
   nh.param("fy", params.fy, 1214.72961288138);
   nh.param("cx", params.cx, 1047.86571859677);
@@ -321,72 +323,129 @@ void saveCalibrationResults(const Params& params, const Eigen::Matrix4f& transfo
 
 void sortPatternCenters(pcl::PointCloud<pcl::PointXYZ>::Ptr pc,
                         pcl::PointCloud<pcl::PointXYZ>::Ptr v,
+                        const Params& params,
                         const std::string& axis_mode = "camera") 
 {
+
   if (pc->size() != 4) {
-    std::cerr << BOLDRED << "[sortPatternCenters] Number of " << axis_mode << " center points to be sorted is not 4." << RESET << std::endl;
+    std::cerr << BOLDRED << "[sortPatternCenters] Number of " << axis_mode
+              << " center points to be sorted is not 4." << RESET << std::endl;
     return;
   }
 
+  // 1) 在“相机样式”坐标进行判定与排序（不修改原始 pc）
   pcl::PointCloud<pcl::PointXYZ>::Ptr work_pc(new pcl::PointCloud<pcl::PointXYZ>());
-
-  // Coordinate transformation (LiDAR -> Camera)
   if (axis_mode == "lidar") {
+    // 根据是否倒置，选择不同的坐标转换规则
+    // LiDAR(x前,y左,z上) -> Camera(x右,y下,z前)
     for (const auto& p : *pc) {
-      pcl::PointXYZ pt;
-      pt.x = -p.y;   // LiDAR Y -> Cam -X
-      pt.y = -p.z;   // LiDAR Z -> Cam -Y
-      pt.z = p.x;    // LiDAR X -> Cam Z
-      work_pc->push_back(pt);
+      pcl::PointXYZ q;
+      if (params.lidar_inverted) {
+        // ========== 倒置安装的转换逻辑 ==========
+        // 倒置相当于Z轴和Y轴反向。
+        // 原标准转换: cam_x = -p.y, cam_y = -p.z, cam_z = p.x
+        // 倒置后LiDAR点(x,y,z)等效于标准安装的(x,-y,-z)
+        // 代入标准转换公式得:
+        // cam_x = -(-p.y) = p.y
+        // cam_y = -(-p.z) = p.z
+        // cam_z = p.x
+        q.x =  p.y;
+        q.y =  p.z;
+        q.z =  p.x;
+      } else {
+        // ========== 标准安装的转换逻辑 ==========
+        q.x = -p.y;   // LiDAR Y -> Cam -X  (-> Cam X 方向向右)
+        q.y = -p.z;   // LiDAR Z -> Cam -Y  (-> Cam Y 方向向下)
+        q.z =  p.x;   // LiDAR X -> Cam  Z  (-> Cam Z 方向向前)
+      }
+      work_pc->push_back(q);
     }
   } else {
     *work_pc = *pc;
   }
 
-  // --- Sorting based on the local coordinate system of the pattern ---
-  // 1. Calculate the centroid of the points
-  Eigen::Vector4f centroid;
-  pcl::compute3DCentroid(*work_pc, centroid);
-  pcl::PointXYZ ref_origin(centroid[0], centroid[1], centroid[2]);
-
-  // 2. Project points to the XY plane relative to the centroid and calculate angles
-  std::vector<std::pair<float, int>> proj_points;
-  for (size_t i = 0; i < work_pc->size(); ++i) {
-    const auto& p = work_pc->points[i];
-    Eigen::Vector3f rel_vec(p.x - ref_origin.x, p.y - ref_origin.y, p.z - ref_origin.z);
-    proj_points.emplace_back(atan2(rel_vec.y(), rel_vec.x()), i);
-  }
-
-  // 3. Sort points based on the calculated angle
-  std::sort(proj_points.begin(), proj_points.end());
-
-  // 4. Output the sorted points into the result vector 'v'
-  v->resize(4);
+  // 2) 计算“归一化图像平面”坐标 u = x/z, v = y/z
+  const double EPS_Z = 1e-8;
+  double u_arr[4], v_arr[4];
   for (int i = 0; i < 4; ++i) {
-    (*v)[i] = work_pc->points[proj_points[i].second];
-  }
-
-  // 5. Verify the order (ensure it's counter-clockwise) and fix if necessary
-  const auto& p0 = v->points[0];
-  const auto& p1 = v->points[1];
-  const auto& p2 = v->points[2];
-  Eigen::Vector3f v01(p1.x - p0.x, p1.y - p0.y, 0);
-  Eigen::Vector3f v12(p2.x - p1.x, p2.y - p1.y, 0);
-  if (v01.cross(v12).z() > 0) {
-    std::swap((*v)[1], (*v)[3]);
-  }
-
-  // 6. If the original input was in the lidar frame, transform the sorted points back
-  if (axis_mode == "lidar") {
-    for (auto& point : v->points) {
-      float x_new = point.z;    // Cam Z -> LiDAR X
-      float y_new = -point.x;   // Cam -X -> LiDAR Y
-      float z_new = -point.y;   // Cam -Y -> LiDAR Z
-      point.x = x_new;
-      point.y = y_new;
-      point.z = z_new;
+    double zx = work_pc->points[i].z;
+    if (fabs(zx) < EPS_Z) {
+      // 极端情况：z≈0 时退化处理（用大数近似以保持排序稳定性）
+      u_arr[i] = work_pc->points[i].x * 1e6;
+      v_arr[i] = work_pc->points[i].y * 1e6;
+    } else {
+      u_arr[i] = work_pc->points[i].x / zx;
+      v_arr[i] = work_pc->points[i].y / zx;
     }
   }
+
+  // 3) 计算归一化坐标的质心（用于相对位置）
+  double cu = 0.0, cv = 0.0;
+  for (int i = 0; i < 4; ++i) { cu += u_arr[i]; cv += v_arr[i]; }
+  cu /= 4.0; cv /= 4.0;
+
+  // 4) 基于 (u-cx, v-cy) 的极角排序（这等价于基于图像平面的排序）
+  struct AngIdx { double ang; int idx; double dx; double dy; };
+  std::vector<AngIdx> items; items.reserve(4);
+  for (int i = 0; i < 4; ++i) {
+    double dx = u_arr[i] - cu;
+    double dy = v_arr[i] - cv;
+    double ang = std::atan2(dy, dx);
+    items.push_back({ang, i, dx, dy});
+  }
+  std::sort(items.begin(), items.end(), [](const AngIdx& a, const AngIdx& b){
+    return a.ang < b.ang;
+  });
+
+  // 初步索引顺序（基于图像平面角度）
+  std::array<int,4> order;
+  for (int i = 0; i < 4; ++i) order[i] = items[i].idx;
+
+  // 5) 保证 CCW（逆时针）顺序：用排序后的二维向量做叉积判定
+  {
+    const auto &A = items[0], &B = items[1], &C = items[2];
+    double cross_z = (B.dx - A.dx) * (C.dy - B.dy) - (B.dy - A.dy) * (C.dx - B.dx);
+    if (cross_z > 0) { std::swap(order[1], order[3]); }
+  }
+
+  // 6) 额外稳健修正：处理标定板在后方导致的镜像问题
+  Eigen::Vector4f cam_centroid;
+  pcl::compute3DCentroid(*work_pc, cam_centroid);
+  bool behind_in_cam = (cam_centroid[2] < 0.0f);
+  if (axis_mode == "lidar" && behind_in_cam) {
+    std::swap(order[0], order[1]); // TL <-> TR
+    std::swap(order[3], order[2]); // BL <-> BR
+    std::cout << BOLDYELLOW << "[sortPatternCenters] behind_in_cam true -> applied left-right swap." << RESET << std::endl;
+  }
+
+  // 7) 输出：严格使用原始坐标系下的点（若 axis_mode == "lidar"，做回转换）
+  v->resize(4);
+  if (axis_mode == "lidar") {
+    for (int i = 0; i < 4; ++i) {
+      int idx = order[i];
+      const auto &cam_pt = work_pc->points[idx];
+      pcl::PointXYZ out;
+      
+      if (params.lidar_inverted) {
+        // ========== 倒置安装的逆转换 ==========
+        // 从 cam_x = p.y, cam_y = p.z, cam_z = p.x 反解
+        out.x = cam_pt.z;
+        out.y = cam_pt.x;
+        out.z = cam_pt.y;
+      } else {
+        // ========== 标准安装的逆转换 ==========
+        out.x = cam_pt.z;     // Cam Z -> LiDAR X
+        out.y = -cam_pt.x;    // Cam -X -> LiDAR Y
+        out.z = -cam_pt.y;    // Cam -Y -> LiDAR Z
+      }
+      (*v)[i] = out;
+    }
+  } else {
+    for (int i = 0; i < 4; ++i) {
+      (*v)[i] = work_pc->points[order[i]];
+    }
+  }
+
 }
 
 class Square 
@@ -430,7 +489,7 @@ class Square
     // The original is_valid() was too rigid. This version is more robust by checking for two possible
     // orderings of the side lengths (width-height vs. height-width) after angular sorting.
     // ==================================================================================================
-    bool is_valid() 
+    bool is_valid(const Params& params) 
     {
       if (_candidates.size() != 4) return false;
 
@@ -448,7 +507,7 @@ class Square
       
       // Sort the corners counter-clockwise
       pcl::PointCloud<pcl::PointXYZ>::Ptr sorted_centers(new pcl::PointCloud<pcl::PointXYZ>());
-      sortPatternCenters(candidates_cloud, sorted_centers, "camera");
+      sortPatternCenters(candidates_cloud, sorted_centers, params, "camera");
       
       // Get the four side lengths from the sorted points
       float s01 = distance(sorted_centers->points[0], sorted_centers->points[1]);
