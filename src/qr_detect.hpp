@@ -25,6 +25,8 @@ class QRDetect
     int min_detected_markers_;
     cv::Ptr<cv::aruco::Dictionary> dictionary_;
     string cam_model_; // 添加成员变量来存储相机模型
+    Params params_; // 用于存储lidar安装朝向配置参数
+
   
   public:
     ros::Publisher qr_pub_;
@@ -34,6 +36,7 @@ class QRDetect
 
     QRDetect(ros::NodeHandle &nh, Params& params) 
     {
+      params_ = params; // 保存参数副本
       marker_size_ = params.marker_size;
       delta_width_qr_center_ = params.delta_width_qr_center;
       delta_height_qr_center_ = params.delta_height_qr_center;
@@ -329,7 +332,7 @@ class QRDetect
           // Compute candidates score
           Square square_candidate(candidates, delta_width_circles_,
                                   delta_height_circles_);
-          groups_scores[i] = square_candidate.is_valid()
+          groups_scores[i] = square_candidate.is_valid(params_)
                                 ? 1.0
                                 : -1;  // -1 when it's not valid, 1 otherwise
         }
