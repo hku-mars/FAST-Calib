@@ -13,7 +13,6 @@ which is included as part of this source code package.
 #include <message_filters/time_synchronizer.h>
 #include <ros/ros.h>
 #include <opencv2/aruco.hpp>
-#include <opencv2/opencv.hpp>
 #include "common_lib.h"
 
 class QRDetect 

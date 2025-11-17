@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
     // 读取图像和点云
     cv::Mat img_input = dataPreprocessPtr->img_input_;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_input = dataPreprocessPtr->cloud_input_;
+    pcl::PointCloud<Common::Point>::Ptr cloud_input = dataPreprocessPtr->cloud_input_;
     
     // 检测 QR 码
     PointCloud<PointXYZ>::Ptr qr_center_cloud(new PointCloud<PointXYZ>);
@@ -39,7 +39,23 @@ int main(int argc, char **argv)
     // 检测 LiDAR 数据
     PointCloud<PointXYZ>::Ptr lidar_center_cloud(new PointCloud<PointXYZ>);
     lidar_center_cloud->reserve(4);
-    lidarDetectPtr->detect_lidar(cloud_input, lidar_center_cloud);
+    
+    switch (dataPreprocessPtr->lidar_type_)
+    {
+        case LiDARType::Solid:
+            lidarDetectPtr->detect_solid_lidar(cloud_input, lidar_center_cloud);
+            break;
+
+        case LiDARType::Mech:
+            lidarDetectPtr->detect_mech_lidar(cloud_input, lidar_center_cloud);
+            break;
+
+        default:
+            std::cerr << BOLDYELLOW 
+                    << "[Main] Unknown LiDAR type." 
+                    << RESET << std::endl;
+            break;
+    }
 
     // 对 QR 和 LiDAR 检测到的圆心进行排序
     PointCloud<PointXYZ>::Ptr qr_centers(new PointCloud<PointXYZ>);

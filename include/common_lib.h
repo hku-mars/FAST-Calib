@@ -7,8 +7,8 @@ which is included as part of this source code package.
 
 #ifndef COMMON_LIB_H
 #define COMMON_LIB_H
+#define PCL_NO_PRECOMPILE
 
-#include <opencv2/opencv.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -25,7 +25,7 @@ which is included as part of this source code package.
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <cmath>
-
+#include <opencv2/opencv.hpp>
 #include <tf/tf.h>
 #include "color.h"
 
@@ -37,42 +37,22 @@ using namespace pcl;
 #define DEBUG 1
 #define GEOMETRY_TOLERANCE 0.06
 
-// namespace CommonLiDAR 
-// {
-//   struct EIGEN_ALIGN16 Point 
-//   {
-//     PCL_ADD_POINT4D;     // quad-word XYZ
-//     float intensity;     ///< laser intensity reading
-//     std::uint16_t ring;  ///< laser ring number
-//     float range;
-//     EIGEN_MAKE_ALIGNED_OPERATOR_NEW  // ensure proper alignment
-//   };
-  
-//   void addRange(pcl::PointCloud<CommonLiDAR::Point> &pc) 
-//   {
-//     for (pcl::PointCloud<Point>::iterator pt = pc.points.begin();
-//          pt < pc.points.end(); pt++) {
-//       pt->range = sqrt(pt->x * pt->x + pt->y * pt->y + pt->z * pt->z);
-//     }
-//   }
-  
-//   vector<vector<Point *>> getRings(pcl::PointCloud<CommonLiDAR::Point> &pc,
-//                                    int rings_count) 
-//   {
-//     vector<vector<Point *>> rings(rings_count);
-//     for (pcl::PointCloud<Point>::iterator pt = pc.points.begin();
-//          pt < pc.points.end(); pt++) {
-//       rings[pt->ring].push_back(&(*pt));
-//     }
-//     return rings;
-//   }
-// }  // namespace Ouster
-  
-// POINT_CLOUD_REGISTER_POINT_STRUCT(CommonLiDAR::Point,
-//                                   (float, x, x)(float, y, y)(float, z, z)(
-//                                       float, intensity,
-//                                       intensity)(std::uint16_t, ring,
-//                                                   ring)(float, range, range));
+// ===== 自定义点类型：XYZ + ring =====
+namespace Common 
+{
+  struct Point
+  {
+    PCL_ADD_POINT4D;            // quad-word XYZ + padding
+    std::uint16_t ring = 0;     // 线号（机械雷达/多线雷达）
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  } EIGEN_ALIGN16;
+}
+POINT_CLOUD_REGISTER_POINT_STRUCT(Common::Point,
+  (float, x, x)
+  (float, y, y)
+  (float, z, z)
+  (std::uint16_t, ring, ring)
+);
 
 // 参数结构体
 struct Params {
@@ -154,7 +134,39 @@ void alignPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud,
   }
 }
 
-void projectPointCloudToImage(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
+void comb(int N, int K, std::vector<std::vector<int>> &groups) {
+  int upper_factorial = 1;
+  int lower_factorial = 1;
+
+  for (int i = 0; i < K; i++) {
+    upper_factorial *= (N - i);
+    lower_factorial *= (K - i);
+  }
+  int n_permutations = upper_factorial / lower_factorial;
+
+  if (DEBUG)
+    cout << N << " centers found. Iterating over " << n_permutations
+         << " possible sets of candidates" << endl;
+
+  std::string bitmask(K, 1);  // K leading 1's
+  bitmask.resize(N, 0);       // N-K trailing 0's
+
+  // print integers and permute bitmask
+  do {
+    std::vector<int> group;
+    for (int i = 0; i < N; ++i)  // [0..N-1] integers
+    {
+      if (bitmask[i]) {
+        group.push_back(i);
+      }
+    }
+    groups.push_back(group);
+  } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+  assert(groups.size() == n_permutations);
+}
+
+void projectPointCloudToImage(const pcl::PointCloud<Common::Point>::Ptr& cloud,
   const Eigen::Matrix4f& transformation,
   const cv::Mat& cameraMatrix,
   const cv::Mat& distCoeffs,
