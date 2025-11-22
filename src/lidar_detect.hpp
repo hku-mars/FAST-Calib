@@ -140,7 +140,7 @@ public:
 
                 // 只保留落在拟合平面附近的点
                 double dist_plane = std::fabs(c[0]*p_cur.x + c[1]*p_cur.y + c[2]*p_cur.z + c[3]) / norm_n;
-                if (dist_plane >= 0.01) continue;
+                if (dist_plane >= 0.03) continue;
 
                 // cur 与 prev 的距离
                 double dx1 = static_cast<double>(p_cur.x) - static_cast<double>(p_prev.x);

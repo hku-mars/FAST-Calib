@@ -47,6 +47,8 @@ roslaunch fast_calib multi_calib.launch
 3. Provide the instrinsic matrix in `qr_params.yaml`.
 4. Set distance filter in `qr_params.yaml` for board point cloud (extra points are acceptable).
 5. Calibrate now!
+
+💡 **Note:** You can run `scripts/distance_filter_tool.py` to quickly obtain suitable filter parameters.
 <p align="center">
   <img src="./pics/calibration_target.jpg" width="100%">
   <font color=#a0a0a0 size=2>Left: Actual calibration target | Right: Technical drawing with annotated dimensions.</font>
