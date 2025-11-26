@@ -20,7 +20,12 @@ In short, it makes extrinsic calibration as simple as intrinsic calibration.
 
 <p align="center">
   <img src="./pics/calib.jpg" width="100%">
-  <font color=#a0a0a0 size=2>Left: Example of circle extraction from Mid360 point cloud | Right: Point cloud colored with calibrated extrinsic.</font>
+  <font color=#a0a0a0 size=2>Left: Example of Mid360 LiDAR calibration. Right: Point cloud colored with the calibrated extrinsics.</font>
+</p>
+
+<p align="center">
+  <img src="./pics/all_lidar_type.jpg" width="100%">
+  <font color=#a0a0a0 size=2>Circular hole extraction supports multiple LiDAR models.</font>
 </p>
 
 ## 1. Prerequisites
