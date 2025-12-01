@@ -433,7 +433,7 @@ public:
     
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-        ec.setClusterTolerance(0.02); // 设置聚类距离阈值
+        ec.setClusterTolerance(0.05); // 设置聚类距离阈值
         ec.setMinClusterSize(50);     // 最小点数
         ec.setMaxClusterSize(1000);   // 最大点数
         ec.setSearchMethod(tree);
