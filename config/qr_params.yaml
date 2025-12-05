@@ -1,3 +1,10 @@
+# Camera model: "pinhole" or "fisheye"
+  cam_model: "pinhole" # 在这里切换 "pinhole" 或 "fisheye"
+
+# LiDAR installation configuration
+  lidar_inverted: false # 如果你的LiDAR是倒置安装(Z轴朝下)，请设置为 true
+
+
 # Camera intrinsics  
   # mid360
   # fx: 843.501050605967
@@ -38,6 +45,10 @@
   k2: 0.147394487986097
   p1: -0.00127118592043482
   p2: -0.00200379689523022
+  # Fisheye (k1, k2, k3, k4) - 如果使用鱼眼模型，请填写这些值
+  k3: 0.0
+  k4: 0.0
+  
 
 # Calibration target parameters
   marker_size: 0.20 # ArUco marker size (our test data uses 0.16m; adjust to match your marker size)

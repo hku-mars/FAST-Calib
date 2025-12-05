@@ -60,8 +60,8 @@ int main(int argc, char **argv)
     // 对 QR 和 LiDAR 检测到的圆心进行排序
     PointCloud<PointXYZ>::Ptr qr_centers(new PointCloud<PointXYZ>);
     PointCloud<PointXYZ>::Ptr lidar_centers(new PointCloud<PointXYZ>);
-    sortPatternCenters(qr_center_cloud, qr_centers, "camera");
-    sortPatternCenters(lidar_center_cloud, lidar_centers, "lidar");
+    sortPatternCenters(qr_center_cloud, qr_centers, params, "camera");
+    sortPatternCenters(lidar_center_cloud, lidar_centers, params, "lidar");
 
     // 保存中间结果：排序后的 LiDAR 圆心和 QR 圆心
     saveTargetHoleCenters(lidar_centers, qr_centers, params);
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     std::cout << BOLDCYAN << std::fixed << std::setprecision(6) << transformation << RESET << std::endl;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    projectPointCloudToImage(cloud_input, transformation, qrDetectPtr->cameraMatrix_, qrDetectPtr->distCoeffs_, img_input, colored_cloud);
+    projectPointCloudToImage(cloud_input, transformation, qrDetectPtr->cameraMatrix_, qrDetectPtr->distCoeffs_, img_input, colored_cloud, params.cam_model); // 添加 params.cam_model
 
     saveCalibrationResults(params, transformation, colored_cloud, qrDetectPtr->imageCopy_);
 
