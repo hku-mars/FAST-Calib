@@ -35,7 +35,7 @@ using namespace pcl;
 
 #define TARGET_NUM_CIRCLES 4
 #define DEBUG 1
-#define GEOMETRY_TOLERANCE 0.06
+#define GEOMETRY_TOLERANCE 0.08
 
 // ===== 自定义点类型：XYZ + ring =====
 namespace Common 
